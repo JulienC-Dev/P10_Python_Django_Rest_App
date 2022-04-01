@@ -17,6 +17,7 @@ L'Authentification de l'utilisateur est réalisée via JWT (JSON Web Token) sur 
 
 Une documentation de l'API a été réalisée via Postman
 La documentation est publiée à l'adresse suivante :  https://documenter.getpostman.com/view/18264679/UVyrUbtQ
+
 Les requêtes sont sous format JSON
 
 
