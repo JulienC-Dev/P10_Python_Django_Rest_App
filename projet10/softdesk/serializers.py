@@ -18,9 +18,10 @@ class ContributorsSerializers(serializers.ModelSerializer):
 
 
 class ProjetsSerializers(serializers.ModelSerializer):
+    auth_user_id = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Project
-        fields = ['project_id', 'title', 'description', 'type']
+        fields = ['project_id', 'title', 'description', 'type', 'auth_user_id']
 
 
 class IssueSerializers(serializers.ModelSerializer):

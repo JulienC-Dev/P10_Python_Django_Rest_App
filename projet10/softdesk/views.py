@@ -2,6 +2,8 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .permissions import ProjectIsAuthenticated
+# , \ContributorAuthenticated
 from .serializers import (ProjetsSerializers,
                           ContributorsSerializers,
                           IssueSerializers,
@@ -11,15 +13,31 @@ from .models import (Project,
                      Issue,
                      Comment)
 from authentication.models import User
+from django.shortcuts import get_object_or_404
 
 
 class ProjectsAPI(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ProjectIsAuthenticated]
     serializer_class = ProjetsSerializers
 
     def get_queryset(self):
+        """
+        Renvoie uniquement les projets rattachés à l'utilisateur connecté
+        """
         user = self.request.user
-        return Project.objects.filter(auth_user_id=user)
+        qs_project = Project.objects.filter(auth_user_id=user)
+        qs_contributor = Contributor.objects.filter(user=user)
+        project_id_contributor = [x.project_id for x in qs_contributor]
+        qs_contributor = Project.objects.filter(project_id__in=project_id_contributor)
+        qs = qs_project.union(qs_contributor)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        if not qs:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(auth_user_id=self.request.user)
@@ -27,32 +45,64 @@ class ProjectsAPI(viewsets.ModelViewSet):
         contributor = Contributor(user=self.request.user, project_id=project_id, role='responsable')
         contributor.save()
 
+    def get_object(self):
+        obj = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 
 class ContributorsAPI(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ContributorsSerializers
 
-    def list(self, request, *args, **kwargs):
+    def get_queryset(self):
+        """
+        Renvoie pour un projet la liste des collaborateurs et du responsable
+        Seul les collaborateurs et responsable ont accès à la liste
+        """
         project_id = self.kwargs.get('project_id')
-        contributor = Contributor.objects.filter(project_id=project_id)
-        serializer = self.serializer_class(contributor, many=True)
-        return Response(serializer.data)
+        project = Project.objects.get(project_id=project_id)
+        qs = project.contributor_set.filter(user__username=self.request.user.username)
+        """
+        Renvoie un query vide si le self.request.user n'est pas un contributeur du projet
+        """
+        if not qs:
+            return qs
+        qs = project.contributor_set.all()
+        return qs
 
-    def create(self, request, *args, **kwargs):
-        project_id = self.kwargs.get('project_id')
-        user = request.data.get('user')
-        try:
-            user = User.objects.get(username=user)
-        except:
-            raise status.HTTP_404_NOT_FOUND
-        contributor = Contributor(user=user, project_id=project_id, role='contributeur')
-        contributor.save()
-        return Response({"success: contributeur ajouté"})
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        if not qs:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = self.serializer_class(qs, many=True)
+        response = Response(serializer.data)
+        return response
+
+    # def create(self, request, *args, **kwargs):
+    #     project_id = self.kwargs.get('project_id')
+    #     user = request.data.get('user')
+    #     try:
+    #         user = User.objects.get(username=user)
+    #         project = Project.objects.get(project_id=project_id)
+    #     except:
+    #         return Response(status=status.HTTP_404_NOT_FOUND)
+    #     contributor = Contributor(user=user, project=project, role='contributeur')
+    #     self.check_object_permissions(self.request, project)
+    #     serializer = self.get_serializer(contributor)
+    #     contributor.save()
+    #     return Response(serializer.data)
 
     def get_object(self):
         if self.kwargs['user_id'] is not None:
             obj = Contributor.objects.filter(user_id=self.kwargs['user_id'], project_id=self.kwargs['project_id'])
             return obj
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(self.request, instance.get())
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class IssueAPI(viewsets.ModelViewSet):

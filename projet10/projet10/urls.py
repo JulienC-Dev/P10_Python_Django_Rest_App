@@ -7,5 +7,3 @@ urlpatterns = [
     path('projects/', include('softdesk.urls')),
 ]
 
-
-# path('api/token/', include('authentication.urls'))

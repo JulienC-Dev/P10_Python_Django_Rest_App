@@ -50,13 +50,3 @@ urlpatterns = [
     path('<int:project_id>/issues/<int:issue_id>/comments/<int:comment_id>/', Comments_detail, name='comments-detail'),
 ]
 
-
-
-from rest_framework.routers import DefaultRouter
-# router = DefaultRouter()
-# router.register('', ProjectsAPI, basename="project")
-# router.register('<int:project_id>/users/', ContributorsAPI, basename="contributor")
-#
-# urlpatterns = [
-#     path('', include(router.urls)),
-# ]
