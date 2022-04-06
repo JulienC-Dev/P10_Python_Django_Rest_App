@@ -24,33 +24,42 @@ class ProjectIsAuthenticated(permissions.BasePermission):
             else:
                 return True
 
+    # class ContributorAuthenticated(permissions.BasePermission):
+    #     def has_permission(self, request, view):
+    #         if request.method in ['GET']:
+    #             return request.user.has_perm('view_object')
+    #         if request.method in ['POST']:
+    #             return request.user.has_perm('add_object')
 
-# class ContributorAuthenticated(permissions.BasePermission):
-#     """
-#     Seuls les contributeurs ou le responsable authentifiés du projet peuvent ajouter des users ou les deletes.
-#     """
-#     def has_permission(self, request, view):
-#         return bool(request.user and request.user.is_authenticated)
-#
-#     def has_object_permission(self, request, view, obj):
-#         if request.method == "POST":
-#             user_already_add = obj.contributor_set.filter(user__username=request.data.get('user'))
-#             request_user_already_add = obj.contributor_set.filter(user__username=request.user)
-#             if user_already_add:
-#                 return False
-#             if not request_user_already_add:
-#                 return False
-#             else:
-#                 return True
-#
-#         if request.method == "DELETE":
-#             project = obj.project
-#             user_already_add = project.contributor_set.filter(user__username=request.data.get('user'))
-#             request_user_already_add = project.contributor_set.filter(user__username=request.user)
-#             if user_already_add:
-#                 return False
-#             if not request_user_already_add:
-#                 return False
-#             else:
-#                 return True
+from .models import Contributor
+class ContributorAuthenticated(permissions.BasePermission):
+    """
+    Seuls les contributeurs ou le responsable authentifiés du projet peuvent ajouter des users ou les deletes.
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        if request.method == "POST":
+            user_already_add = obj.contributor_set.filter(user__username=request.data.get('user'))
+            request_user_already_add = obj.contributor_set.filter(user__username=request.user)
+            if user_already_add:
+                return False
+            if not request_user_already_add:
+                return False
+            else:
+                return True
+
+        if request.method == "DELETE":
+            project = obj.project
+            user_already_add = project.contributor_set.filter(user__username=request.data.get('user'))
+            request_user_already_add = project.contributor_set.filter(user__username=request.user)
+            if user_already_add:
+                return False
+            if not request_user_already_add:
+                return False
+            else:
+                return True
+
+
 

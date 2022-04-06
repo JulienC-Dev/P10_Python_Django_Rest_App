@@ -4,39 +4,13 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 
-
-
-TYPE_ROLE = (
-    ('contributeur', _('contributeur')),
-    ('responsable', _('responsable')),
-)
-
-TYPE_PRIORITY = (
-    ('faible', _('faible')),
-    ('moyenne', _('moyenne')),
-    ('elevee', _('élevée')),
-)
-
-TYPE_STATUS = (
-    ('afaire', _('À faire')),
-    ('encours', _('En cours')),
-    ('termine', _('Terminé')),
-)
-
-TYPE_BALISE = (
-    ('bug', _('bug')),
-    ('amelioration', _('amélioration')),
-    ('tache', _('tâche')),
-)
-
-
 class Project(models.Model):
     TYPE_BACK_END = (
         ('back-end', _('back-end')),
         ('front-end', _('front-end')),
-        ('iOS ou Android', _('iOS ou Android')),
+        ('iOS', _('iOS')),
+        ('Android', _('Android')),
     )
-    # modifier ios ou android
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=100)
@@ -45,6 +19,10 @@ class Project(models.Model):
 
 
 class Contributor(models.Model):
+    TYPE_ROLE = (
+        ('contributeur', _('contributeur')),
+        ('responsable', _('responsable')),
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.CharField(choices=TYPE_ROLE, max_length=100, default='contributeur')
@@ -53,7 +31,25 @@ class Contributor(models.Model):
         return '{}'.format(self.user)
 
 
+
 class Issue(models.Model):
+    TYPE_PRIORITY = (
+        ('faible', _('faible')),
+        ('moyenne', _('moyenne')),
+        ('elevee', _('élevée')),
+    )
+
+    TYPE_STATUS = (
+        ('afaire', _('À faire')),
+        ('encours', _('En cours')),
+        ('termine', _('Terminé')),
+    )
+
+    TYPE_BALISE = (
+        ('bug', _('bug')),
+        ('amelioration', _('amélioration')),
+        ('tache', _('tâche')),
+    )
     createur_issue = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='createur')
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='assignee')
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
