@@ -1,8 +1,11 @@
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .permissions import ProjectIsAuthenticated, ContributorAuthenticated
+
+from .permissions import (ProjectIsAuthenticated,
+                          ContributorAuthenticated,
+                          IssueAuthenticated,
+                          CommentAuthenticated)
 from .serializers import (ProjetsSerializers,
                           ContributorsSerializers,
                           IssueSerializers,
@@ -107,19 +110,23 @@ class ContributorsAPI(viewsets.ModelViewSet):
 
 
 class IssueAPI(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IssueAuthenticated]
     serializer_class = IssueSerializers
+
+    def get_queryset(self):
+        qs = Issue.objects.filter(createur_issue=self.request.user, project=self.kwargs['project_id'])
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        serializer = self.serializer_class(qs, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         project_id = self.kwargs.get('project_id')
         project = Project.objects.get(project_id=project_id)
+        self.check_object_permissions(self.request, project)
         serializer.save(project=project, createur_issue=self.request.user)
-
-    def list(self, request, *args, **kwargs):
-        project_id = self.kwargs.get('project_id')
-        issue = Issue.objects.filter(project_id=project_id)
-        serializer = self.serializer_class(issue, many=True)
-        return Response(serializer.data)
 
     def get_object(self):
         if self.kwargs['issue_id'] is not None:
@@ -130,23 +137,36 @@ class IssueAPI(viewsets.ModelViewSet):
 
 
 class CommentAPI(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CommentAuthenticated]
     serializer_class = CommentSerializers
 
+    def get_queryset(self):
+        """
+        Renvoie une liste de commentaires si le self.request.user est un contributeur du projet
+        """
+        qs_contributor = Contributor.objects.filter(project__project_id=self.kwargs.get('project_id'),
+                                                    role="contributeur", user=self.request.user)
+        if not qs_contributor:
+            return qs_contributor
+        comment = Comment.objects.filter(issue_id=self.kwargs.get('issue_id'))
+        return comment
+
     def list(self, request, *args, **kwargs):
-        issue_id = self.kwargs.get('issue_id')
-        comment = Comment.objects.filter(issue_id=issue_id)
+        comment = self.get_queryset()
         serializer = self.serializer_class(comment, many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
         issue_id = self.kwargs.get('issue_id')
         issue = Issue.objects.get(id=issue_id)
+        projet = Project.objects.get(project_id=self.kwargs['project_id'])
+        self.check_object_permissions(self.request, projet)
         serializer.save(issue=issue, auth_user=self.request.user)
 
     def get_object(self):
         if self.kwargs['comment_id'] is not None:
             obj = Comment.objects.get(comment_id=self.kwargs['comment_id'])
-            self.check_object_permissions(self.request, obj)
+            projet = Project.objects.get(project_id=self.kwargs['project_id'])
+            self.check_object_permissions(self.request, projet)
             return obj
         raise status.HTTP_404_NOT_FOUND

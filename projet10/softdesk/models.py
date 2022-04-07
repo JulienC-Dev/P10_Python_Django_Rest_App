@@ -31,7 +31,6 @@ class Contributor(models.Model):
         return '{}'.format(self.user)
 
 
-
 class Issue(models.Model):
     TYPE_PRIORITY = (
         ('faible', _('faible')),

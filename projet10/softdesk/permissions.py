@@ -55,5 +55,44 @@ class ContributorAuthenticated(permissions.BasePermission):
                 return False
             return True
 
-# class IssueAuthenticated(permissions.BasePermission):
+
+class IssueAuthenticated(permissions.BasePermission):
+    """
+    Seuls les contributeurs sont autorisés à créer ou à consulter les problèmes
+    Seul l'auteur/contributeur d'un problème peut modifier ou supprimer un problème
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        if request.method == "POST":
+            contributor_qs = obj.contributor_set.filter(user__username__contains=request.user.username,
+                                                        role__contains="contributeur")
+            if not contributor_qs:
+                return False
+            return True
+        if request.method == "DELETE" or request.method == "PUT":
+            if obj.createur_issue == request.user:
+                return True
+            return False
+
+
+class CommentAuthenticated(permissions.BasePermission):
+    """
+    Seuls les contributeurs du projet sont autorisés à créer ou à consulter les commentaires
+    Seul l'auteur/contributeur d'un commentaire peut le modifier ou le supprimer
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method == "POST" or request.method == "GET":
+            contributor_qs = obj.contributor_set.filter(user__username__contains=request.user.username,
+                                                        role__contains="contributeur")
+            if not contributor_qs:
+                return False
+            return True
+
+        if request.method == "DELETE" or request.method == "PUT":
+            if obj.auth_user == request.user:
+                return True
+            return False
+
 
