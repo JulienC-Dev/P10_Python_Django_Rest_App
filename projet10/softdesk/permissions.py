@@ -1,6 +1,7 @@
 from rest_framework import permissions
 
 
+
 class ProjectIsAuthenticated(permissions.BasePermission):
     """
     Seuls les contributeurs ou le responsable authentifiés peuvent accéder aux détails et modif du projet.
@@ -90,7 +91,18 @@ class CommentAuthenticated(permissions.BasePermission):
                 return False
             return True
 
-        if request.method == "DELETE" or request.method == "PUT" or request.method == "GET":
+        if request.method == "DELETE" or request.method == "PUT":
             if obj.auth_user == request.user:
                 return True
             return False
+
+        if request.method == "GET":
+            """
+            Seuls les contributeurs du projet sont autorisés à consulter l'ensemble des commentaires en détail
+            """
+            projet = obj.issue.project
+            contributor_qs = projet.contributor_set.filter(user__username__contains=request.user.username,
+                                                           role__contains="contributeur")
+            if not contributor_qs:
+                return False
+            return True
