@@ -83,16 +83,14 @@ class CommentAuthenticated(permissions.BasePermission):
     Seul l'auteur/contributeur d'un commentaire peut le modifier ou le supprimer
     """
     def has_object_permission(self, request, view, obj):
-        if request.method == "POST" or request.method == "GET":
+        if request.method == "POST":
             contributor_qs = obj.contributor_set.filter(user__username__contains=request.user.username,
                                                         role__contains="contributeur")
             if not contributor_qs:
                 return False
             return True
 
-        if request.method == "DELETE" or request.method == "PUT":
+        if request.method == "DELETE" or request.method == "PUT" or request.method == "GET":
             if obj.auth_user == request.user:
                 return True
             return False
-
-

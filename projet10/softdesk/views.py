@@ -166,7 +166,6 @@ class CommentAPI(viewsets.ModelViewSet):
     def get_object(self):
         if self.kwargs['comment_id'] is not None:
             obj = Comment.objects.get(comment_id=self.kwargs['comment_id'])
-            projet = Project.objects.get(project_id=self.kwargs['project_id'])
-            self.check_object_permissions(self.request, projet)
+            self.check_object_permissions(self.request, obj)
             return obj
         raise status.HTTP_404_NOT_FOUND
